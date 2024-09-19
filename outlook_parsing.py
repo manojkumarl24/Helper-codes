@@ -42,27 +42,54 @@ if 'parsed' in st.session_state and st.session_state['parsed']:
 #FILE2- SIDEBAR.PY
 import streamlit as st
 import os
+from filtering_options import filter_emails_no_cc_bcc
 
 def open_sidebar():
-    # Sidebar title
     with st.sidebar:
         st.header("Output Settings")
 
-        # Get output folder path from user
         output_folder = st.text_input("Enter the output folder path:")
 
         # Check if it's a valid folder path
         if output_folder and os.path.isdir(output_folder):
+            st.session_state['valid_folder'] = True
             st.success("Valid output folder path")
-            st.session_state['valid_folder'] = True  # Mark folder path as valid
         else:
             st.error("Please provide a valid folder path.")
             st.session_state['valid_folder'] = False
 
-        # Only show filter button if the folder path is valid
-        if 'valid_folder' in st.session_state and st.session_state['valid_folder']:
-            if st.button("Show Filter Options"):
-                # Display filter options
-                st.write("Here are the filter options.")
+        # Show filter options if valid folder
+        if st.session_state.get('valid_folder', False):
+            if st.button("Filter Emails with No CC/BCC"):
+                st.session_state['filtering_in_progress'] = True
+                st.session_state['filter_result'] = filter_emails_no_cc_bcc(output_folder)  # Call filtering function
+
+            # Display success message after filtering is done
+            if st.session_state.get('filter_result', False):
+                st.success("Emails filtered and stored successfully!")
 
 
+#FILE3 - FILTERING OPTION
+
+import os
+import streamlit as st
+import win32com.client  # Assuming you use win32com.client to interact with Outlook
+
+# Simulated filtering function (replace with real filtering logic)
+def filter_emails_no_cc_bcc(output_folder):
+    st.write("Filtering emails with no CC/BCC...")  # Feedback to the user
+    outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
+    
+    try:
+        # Simulate accessing folders and filtering logic
+        inbox = outlook.Folders.Item(1).Folders("Inbox")  # Example accessing Inbox folder
+        for message in inbox.Items:
+            if not message.CC and not message.BCC:
+                # Save filtered message (this is where you'd save the email as an MSG file)
+                save_path = os.path.join(output_folder, f"{message.Subject}.msg")
+                message.SaveAs(save_path)
+        return True  # Return success state
+
+    except Exception as e:
+        st.error(f"Error while filtering emails: {e}")
+        return False  # Return failure state
